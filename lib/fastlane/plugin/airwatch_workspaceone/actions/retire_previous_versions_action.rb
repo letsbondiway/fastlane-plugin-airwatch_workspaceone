@@ -1,5 +1,5 @@
 require 'fastlane/action'
-require_relative '../helper/airwatchtest_helper'
+require_relative '../helper/airwatch_workspaceone_helper'
 
 module Fastlane
   module Actions
