@@ -1,0 +1,62 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+platform :ios do
+
+	desc "This lane deploys the ipa to AirWatch server"
+	lane :deploy_app_example1 do
+
+    deploy_build(host_url: <your-host-url>,
+    	aw_tenant_code: <your-api-token-code>,
+    	b64_encoded_auth: <your-b64-encoded-auth-string>,
+    	app_name: <name-of-your-app>,
+    	file_name: "PluginTest.ipa",
+      	path_to_file: "/path/to/PluginTest.ipa",
+      	org_group_id: <your-org-group-integer-id>,
+      	push_mode: "On demand",
+      	debug: true
+    )
+	end
+
+	desc "This lane deploys the ipa to AirWatch server. In this lane, host_url, aw_tenant_code, b64_encoded_auth, app_name and org_group_id are picked from a .env file located in the same folder as Fastfile"
+	lane :deploy_app_example2 do
+
+    deploy_build(file_name: "PluginTest.ipa",
+      	path_to_file: "/path/to/PluginTest.ipa",
+      	push_mode: "Auto"
+    )
+	end
+
+	desc "This lane retires all the active versions of the app except the latest version"
+	lane :retire_versions_example1 do
+
+    retire_previous_versions(host_url: <your-host-url>,
+    	aw_tenant_code: <your-api-token-code>,
+    	b64_encoded_auth: <your-b64-encoded-auth-string>,
+    	app_name: <name-of-your-app>,
+    	app_identifier: "com.yourapp.bundleid"
+    )
+	end
+
+	desc "This lane retires all the active versions of the app except the latest version. . In this lane, host_url, aw_tenant_code, b64_encoded_auth, app_name and org_group_id are picked from a .env file located in the same folder as Fastfile"
+	lane :retire_versions_example2 do
+
+    retire_previous_versions(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+      debug: true
+    )
+	end
+end

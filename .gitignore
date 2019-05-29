@@ -34,6 +34,10 @@ build-iPhoneSimulator/
 /_yardoc/
 /doc/
 /rdoc/
+fastlane/README.md
+fastlane/report.xml
+coverage
+test-results
 
 ## Environment normalization:
 /.bundle/
@@ -42,7 +46,7 @@ build-iPhoneSimulator/
 
 # for a library or gem, you might want to ignore these files since the code is
 # intended to run in multiple environments; otherwise, check them in:
-# Gemfile.lock
+Gemfile.lock
 # .ruby-version
 # .ruby-gemset
 
