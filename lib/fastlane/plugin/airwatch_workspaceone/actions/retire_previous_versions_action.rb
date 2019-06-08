@@ -41,11 +41,9 @@ module Fastlane
         UI.message("1. Finding active app versions")
         UI.message("------------------------------")
 
-        appIDs = find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
-        UI.success("Found %d active app versions" % [appIDs.count])
-        if debug
-          UI.success("Integer app ids: %s" % [appIDs])
-        end
+        appVersions = find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
+        UI.success("Found %d active app versions" % [appVersions.count])
+        UI.success("Version numbers: %s" % [appVersions.map {|appVersion| appVersion.values[1]}])
 
         # step 2: retire previous versions
         UI.message("-------------------------------")
@@ -53,15 +51,15 @@ module Fastlane
         UI.message("-------------------------------")
 
         keep_latest_versions_count_int = keep_latest_versions_count.to_i
-        if appIDs.count < keep_latest_versions_count_int
+        if appVersions.count < keep_latest_versions_count_int
           UI.important("Given number of latest versions to keep is greater than available number of versions on the store.")
           UI.important("Will retire all versions excpet the most latest version.")
           keep_latest_versions_count_int = 1
         end
 
-        appIDs.pop(keep_latest_versions_count_int)
-        appIDs.each do |appID|
-          retire_app(host_url, aw_tenant_code, b64_encoded_auth, appID)
+        appVersions.pop(keep_latest_versions_count_int)
+        appVersions.each do |appVersion|
+          retire_app(host_url, aw_tenant_code, b64_encoded_auth, appVersion)
         end
 
         UI.success("Requested active app versions successfully retired")
@@ -70,16 +68,18 @@ module Fastlane
       def self.find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
         # get the list of apps 
         data = list_apps(host_url, aw_tenant_code, b64_encoded_auth, app_identifier)
-        active_app_version_ids = Array.new
+        active_app_versions = Array.new
 
         data['Application'].each do |app|
           if app['Status'] == "Active"
-            active_app_version_ids << app['Id']['Value']
+            active_app_version = Hash.new
+            active_app_version['Id'] = app['Id']['Value']
+            active_app_version['Version'] = app['AppVersion']
+            active_app_versions << active_app_version
           end
         end
 
-        # active_app_version_ids.pop
-        return active_app_version_ids
+        return active_app_versions
       end
 
       def self.list_apps(host_url, aw_tenant_code, b64_encoded_auth, app_identifier)
@@ -98,26 +98,26 @@ module Fastlane
         return json
       end
 
-      def self.retire_app(host_url, aw_tenant_code, b64_encoded_auth, app_id)
+      def self.retire_app(host_url, aw_tenant_code, b64_encoded_auth, app_version)
         require 'rest-client'
         require 'json'
 
         body = {
-          "applicationid" => app_id
+          "applicationid" => app_version['Id']
         }
 
-        UI.message("Starting to retire app version having integer identifier: %d" % [app_id])
-        response = RestClient.post(host_url + INTERNAL_APP_RETIRE_SUFFIX % [app_id], body.to_json,  {accept: :json, 'aw-tenant-code': aw_tenant_code, 'Authorization': "Basic " + b64_encoded_auth})
+        UI.message("Starting to retire app version: %s" % [app_version['Version']])
+        response = RestClient.post(host_url + INTERNAL_APP_RETIRE_SUFFIX % [app_version['Id']], body.to_json,  {accept: :json, 'aw-tenant-code': aw_tenant_code, 'Authorization': "Basic " + b64_encoded_auth})
 
         if debug
           UI.message("Response code: %d" % [response.code])
         end
 
         if response.code == 202
-          UI.message("Successfully retired app version having integer identifier: %d" % [app_id])
+          UI.message("Successfully retired app version: %s" % [app_version['Version']])
         else
           json = JSON.parse(response.body)
-          UI.message("Failed to retire app version having integer identifier: %d" % [app_id])
+          UI.message("Failed to retire app version: %s" % [app_version['Version']])
         end
       end
 
