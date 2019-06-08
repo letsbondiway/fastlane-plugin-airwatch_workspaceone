@@ -24,14 +24,17 @@ module Fastlane
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
           UI.message(" app_identifier: #{params[:app_identifier]}")
           UI.message(" app_name: #{params[:app_name]}")
+          UI.message(" app_name: #{params[:app_name]}")
+          UI.message(" keep_latest_versions_count: #{params[:keep_latest_versions_count]}")
           UI.message("---------------------------------")
         end
 
-        host_url          = params[:host_url]
-        aw_tenant_code    = params[:aw_tenant_code]
-        b64_encoded_auth  = params[:b64_encoded_auth]
-        app_identifier    = params[:app_identifier]
-        app_name          = params[:app_name]
+        host_url                    = params[:host_url]
+        aw_tenant_code              = params[:aw_tenant_code]
+        b64_encoded_auth            = params[:b64_encoded_auth]
+        app_identifier              = params[:app_identifier]
+        app_name                    = params[:app_name]
+        keep_latest_versions_count  = params[:keep_latest_versions_count]
 
         # step 1: find app
         UI.message("------------------------------")
@@ -41,8 +44,7 @@ module Fastlane
         appIDs = find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
         UI.success("Found %d active app versions" % [appIDs.count])
         if debug
-          UI.success("Integer app ids:")
-          UI.success(appIDs)
+          UI.success("Integer app ids: %s" % [appIDs])
         end
 
         # step 2: retire previous versions
@@ -50,11 +52,19 @@ module Fastlane
         UI.message("2. Retiring active app versions")
         UI.message("-------------------------------")
 
+        keep_latest_versions_count_int = keep_latest_versions_count.to_i
+        if appIDs.count < keep_latest_versions_count_int
+          UI.important("Given number of latest versions to keep is greater than available number of versions on the store.")
+          UI.important("Will retire all versions excpet the most latest version.")
+          keep_latest_versions_count_int = 1
+        end
+
+        appIDs.pop(keep_latest_versions_count_int)
         appIDs.each do |appID|
           retire_app(host_url, aw_tenant_code, b64_encoded_auth, appID)
         end
 
-        UI.success("All active app versions successfully retired")
+        UI.success("Requested active app versions successfully retired")
       end
 
       def self.find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
@@ -68,7 +78,7 @@ module Fastlane
           end
         end
 
-        active_app_version_ids.pop
+        # active_app_version_ids.pop
         return active_app_version_ids
       end
 
@@ -173,6 +183,16 @@ module Fastlane
                                       type: String,
                               verify_block: proc do |value|
                                               UI.user_error!("No app name given, pass using `app_name: 'My sample app'`") unless value and !value.empty?
+                                            end),
+
+          FastlaneCore::ConfigItem.new(key: :keep_latest_versions_count,
+                                  env_name: "AIRWATCH_KEEP_LATEST_VERSIONS_COUNT",
+                               description: "Name of the application",
+                                  optional: true,
+                                      type: String,
+                             default_value: "1",
+                              verify_block: proc do |value|
+                                              UI.user_error!("The number of latest versions to keep can not be zero or negative") unless value.to_i >= 0
                                             end),
 
           FastlaneCore::ConfigItem.new(key: :debug,
