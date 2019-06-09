@@ -17,14 +17,13 @@ module Fastlane
         $is_debug = params[:debug]
 
         if debug
-          UI.message("---------------------------------")
-          UI.message("AirWatch plugin debug information")
-          UI.message("---------------------------------")
+          UI.message("----------------------------------------------")
+          UI.message("RetirePreviousVersionsAction debug information")
+          UI.message("----------------------------------------------")
           UI.message(" host_url: #{params[:host_url]}")
           UI.message(" aw_tenant_code: #{params[:aw_tenant_code]}")
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
           UI.message(" app_identifier: #{params[:app_identifier]}")
-          UI.message(" app_name: #{params[:app_name]}")
           UI.message(" keep_latest_versions_count: #{params[:keep_latest_versions_count]}")
         end
 
@@ -32,7 +31,6 @@ module Fastlane
         $aw_tenant_code             = params[:aw_tenant_code]
         $b64_encoded_auth           = params[:b64_encoded_auth]
         app_identifier              = params[:app_identifier]
-        app_name                    = params[:app_name]
         keep_latest_versions_count  = params[:keep_latest_versions_count]
 
         # step 1: find app
@@ -41,27 +39,26 @@ module Fastlane
         UI.message("------------------------------")
 
         app_versions = find_app(app_identifier)
-        UI.success("Found %d active app versions" % [app_versions.count])
-        UI.success("Version numbers: %s" % [app_versions.map {|app_version| app_version.values[1]}])
+        UI.success("Found %d active app version(s)" % [app_versions.count])
+        UI.success("Version number(s): %s" % [app_versions.map {|app_version| app_version.values[1]}])
 
         # step 2: retire previous versions
-        UI.message("-------------------------------")
-        UI.message("2. Retiring active app versions")
-        UI.message("-------------------------------")
+        UI.message("-----------------------------------------")
+        UI.message("2. Retiring requested active app versions")
+        UI.message("-----------------------------------------")
 
         keep_latest_versions_count_int = keep_latest_versions_count.to_i
-        if appVersions.count < keep_latest_versions_count_int
+        if app_versions.count < keep_latest_versions_count_int
           UI.important("Given number of latest versions to keep is greater than available number of versions on the store.")
-          UI.important("Will retire all versions excpet the most latest version.")
-          keep_latest_versions_count_int = 1
+          UI.important("Will not retire any version.")
+        else
+          app_versions.pop(keep_latest_versions_count_int)
+          UI.important("Version number(s) to retire: %s" % [app_versions.map {|app_version| app_version.values[1]}])
+          app_versions.each do |app_version|
+            retire_app(app_version)
+          end
+          UI.success("Version(s) %s successfully retired." % [app_versions.map {|app_version| app_version.values[1]}])
         end
-
-        app_versions.pop(keep_latest_versions_count_int)
-        app_versions.each do |app_version|
-          retire_app(app_version)
-        end
-
-        UI.success("Requested active app versions successfully retired")
       end
 
       def self.find_app(app_identifier)
@@ -91,6 +88,11 @@ module Fastlane
           UI.message("Response code: %d" % [response.code])
           UI.message("Response body:")
           UI.message(response.body)
+        end
+
+        if response.code != 200
+          UI.user_error!("There was an error in finding app versions. One possible reason is that an app with the bundle identifier given does not exist on Console.")
+          exit
         end
 
         json = JSON.parse(response.body)
@@ -175,18 +177,9 @@ module Fastlane
                                               UI.user_error!("No app identifier given, pass using `app_identifier: 'com.example.app'`") unless value and !value.empty?
                                             end),
 
-          FastlaneCore::ConfigItem.new(key: :app_name,
-                                  env_name: "AIRWATCH_APPLICATION_NAME",
-                               description: "Name of the application",
-                                  optional: false,
-                                      type: String,
-                              verify_block: proc do |value|
-                                              UI.user_error!("No app name given, pass using `app_name: 'My sample app'`") unless value and !value.empty?
-                                            end),
-
           FastlaneCore::ConfigItem.new(key: :keep_latest_versions_count,
                                   env_name: "AIRWATCH_KEEP_LATEST_VERSIONS_COUNT",
-                               description: "Name of the application",
+                               description: "Name of the application. default: 1",
                                   optional: true,
                                       type: String,
                              default_value: "1",

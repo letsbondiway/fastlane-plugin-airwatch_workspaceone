@@ -19,9 +19,9 @@ module Fastlane
         $is_debug = params[:debug]
 
         if debug
-          UI.message("---------------------------------")
-          UI.message("AirWatch plugin debug information")
-          UI.message("---------------------------------")
+          UI.message("-----------------------------------")
+          UI.message("DeployBuildAction debug information")
+          UI.message("-----------------------------------")
           UI.message(" host_url: #{params[:host_url]}")
           UI.message(" aw_tenant_code: #{params[:aw_tenant_code]}")
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
@@ -53,7 +53,7 @@ module Fastlane
         UI.message("2. Setting supported device models")
         UI.message("----------------------------------")
         $supported_device_models = find_supported_device_models(path_to_file)
-        UI.success("Supported Device Models are: %s" % [$supported_device_models.to_json])
+        UI.success("Supported Device Model(s): %s" % [$supported_device_models.to_json])
 
         # step 3: uploading app blob file
         UI.message("---------------------")

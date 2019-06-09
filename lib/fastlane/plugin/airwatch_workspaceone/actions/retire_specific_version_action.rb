@@ -3,10 +3,10 @@ require_relative '../helper/airwatch_workspaceone_helper'
 
 module Fastlane
   module Actions
-    class DeletePreviousVersionsAction < Action
+    class RetireSpecificVersionAction < Action
       
       APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?bundleid=%s"
-      INTERNAL_APP_DELETE_SUFFIX  = "/API/mam/apps/internal/%d"
+      INTERNAL_APP_RETIRE_SUFFIX  = "/API/mam/apps/internal/%d/retire"
       
       $is_debug = false
 
@@ -17,63 +17,63 @@ module Fastlane
         $is_debug = params[:debug]
 
         if debug
-          UI.message("----------------------------------------------")
-          UI.message("DeletePreviousVersionsAction debug information")
-          UI.message("----------------------------------------------")
+          UI.message("---------------------------------------------")
+          UI.message("RetireSpecificVersionAction debug information")
+          UI.message("---------------------------------------------")
           UI.message(" host_url: #{params[:host_url]}")
           UI.message(" aw_tenant_code: #{params[:aw_tenant_code]}")
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
           UI.message(" app_identifier: #{params[:app_identifier]}")
-          UI.message(" keep_latest_versions_count: #{params[:keep_latest_versions_count]}")
+          UI.message(" version_number: #{params[:version_number]}")
         end
 
-        $host_url                   = params[:host_url]
-        $aw_tenant_code             = params[:aw_tenant_code]
-        $b64_encoded_auth           = params[:b64_encoded_auth]
-        app_identifier              = params[:app_identifier]
-        keep_latest_versions_count  = params[:keep_latest_versions_count]
+        $host_url         = params[:host_url]
+        $aw_tenant_code   = params[:aw_tenant_code]
+        $b64_encoded_auth = params[:b64_encoded_auth]
+        app_identifier    = params[:app_identifier]
+        version_number    = params[:version_number]
 
         # step 1: find app
-        UI.message("-----------------------")
-        UI.message("1. Finding app versions")
-        UI.message("-----------------------")
+        UI.message("------------------------------")
+        UI.message("1. Finding active app versions")
+        UI.message("------------------------------")
 
         app_versions = find_app(app_identifier)
-        UI.success("Found %d app version(s)" % [app_versions.count])
-        UI.success("Version number(s): %s" % [app_versions.map {|app_version| app_version.values[1]}])
+        app_version_numbers = app_versions.map {|app_version| app_version.values[1]}
+        UI.success("Found %d active app version(s)" % [app_versions.count])
+        UI.success("Version number(s): %s" % [app_version_numbers])
 
-        # step 2: delete versions
-        UI.message("------------------------")
-        UI.message("2. Deleting app versions")
-        UI.message("------------------------")
+        # step 2: retire specific version
+        UI.message("--------------------------------")
+        UI.message("2. Retiring specific app version")
+        UI.message("--------------------------------")
 
-        keep_latest_versions_count_int = keep_latest_versions_count.to_i
-        if app_versions.count < keep_latest_versions_count_int
-          UI.important("Given number of latest versions to keep is greater than available number of versions on the store.")
-          UI.important("Will not delete any version.")
+        if app_version_numbers.include? version_number
+          version_index = app_version_numbers.index(version_number)
+          app_version_to_retire = app_versions[version_index]
+          retire_app(app_version_to_retire)
         else
-          app_versions.pop(keep_latest_versions_count_int)
-          UI.important("Version number(s) to delete: %s" % [app_versions.map {|app_version| app_version.values[1]}])
-          app_versions.each do |app_version|
-            delete_app(app_version)
-          end
-          UI.success("Version(s) %s successfully deleted." % [app_versions.map {|app_version| app_version.values[1]}])
+          UI.user_error!("A version with the given version number: %s does not exist on the console for this application or is already retired." % [version_number])
         end
+
+        UI.success("Version %s successfully retired" % [version_number])
       end
 
       def self.find_app(app_identifier)
         # get the list of apps 
         data = list_app_versions(app_identifier)
-        app_versions = Array.new
+        active_app_versions = Array.new
 
         data['Application'].each do |app|
-          app_version = Hash.new
-          app_version['Id'] = app['Id']['Value']
-          app_version['Version'] = app['AppVersion']
-          app_versions << app_version
+          if app['Status'] == "Active"
+            active_app_version = Hash.new
+            active_app_version['Id'] = app['Id']['Value']
+            active_app_version['Version'] = app['AppVersion']
+            active_app_versions << active_app_version
+          end
         end
 
-        return app_versions
+        return active_app_versions
       end
 
       def self.list_app_versions(app_identifier)
@@ -97,26 +97,31 @@ module Fastlane
         return json
       end
 
-      def self.delete_app(app_version)
+      def self.retire_app(app_version)
         require 'rest-client'
         require 'json'
 
-        UI.message("Starting to delete app version: %s" % [app_version['Version']])
-        response = RestClient.delete($host_url + INTERNAL_APP_DELETE_SUFFIX % [app_version['Id']],  {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
+        body = {
+          "applicationid" => app_version['Id']
+        }
+
+        UI.message("Starting to retire app version: %s" % [app_version['Version']])
+        response = RestClient.post($host_url + INTERNAL_APP_RETIRE_SUFFIX % [app_version['Id']], body.to_json,  {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
 
         if debug
           UI.message("Response code: %d" % [response.code])
         end
 
-        if response.code == 204
-          UI.message("Successfully deleted app version: %s" % [app_version['Version']])
+        if response.code == 202
+          UI.message("Successfully retired app version: %s" % [app_version['Version']])
         else
-          UI.message("Failed to delete app version: %s" % [app_version['Version']])
+          json = JSON.parse(response.body)
+          UI.message("Failed to retire app version: %s" % [app_version['Version']])
         end
       end
 
       def self.description
-        "The main purpose of this action is to delete versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to delete all the versions."
+        "The main purpose of this action is to retire a specific version of an application. This action takes a string parameter where you can specify the version number to retire."
       end
 
       def self.authors
@@ -129,7 +134,7 @@ module Fastlane
 
       def self.details
         # Optional:
-        "delete_previous_versions - To delete versions of an application on the AirWatch console."
+        "retire_specific_version - To retire specific version of an application on the AirWatch console."
       end
 
       def self.available_options
@@ -170,14 +175,13 @@ module Fastlane
                                               UI.user_error!("No app identifier given, pass using `app_identifier: 'com.example.app'`") unless value and !value.empty?
                                             end),
 
-          FastlaneCore::ConfigItem.new(key: :keep_latest_versions_count,
-                                  env_name: "AIRWATCH_KEEP_LATEST_VERSIONS_COUNT",
-                               description: "Name of the application. default: 0",
-                                  optional: true,
+          FastlaneCore::ConfigItem.new(key: :version_number,
+                                  env_name: "AIRWATCH_VERSION_NUMBER",
+                               description: "Version number of the application to retire",
+                                  optional: false,
                                       type: String,
-                             default_value: "0",
                               verify_block: proc do |value|
-                                              UI.user_error!("The number of latest versions to keep can not be negative") unless value.to_i >= 0
+                                              UI.user_error!("No version number given, pass using `version_number: '1.0'`") unless value and !value.empty?
                                             end),
 
           FastlaneCore::ConfigItem.new(key: :debug,

@@ -19,9 +19,9 @@ module Fastlane
         $is_debug = params[:debug]
 
         if debug
-          UI.message("---------------------------------")
-          UI.message("AirWatch plugin debug information")
-          UI.message("---------------------------------")
+          UI.message("----------------------------------------------")
+          UI.message("AddOrUpdateAssignmentsAction debug information")
+          UI.message("----------------------------------------------")
           UI.message(" host_url: #{params[:host_url]}")
           UI.message(" aw_tenant_code: #{params[:aw_tenant_code]}")
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
@@ -128,6 +128,11 @@ module Fastlane
           UI.message("Response code: %d" % [response.code])
           UI.message("Response body:")
           UI.message(response.body)
+        end
+
+        if response.code != 200
+          UI.user_error!("There was an error in finding app versions. One possible reason is that an app with the bundle identifier given does not exist on Console.")
+          exit
         end
 
         json = JSON.parse(response.body)
