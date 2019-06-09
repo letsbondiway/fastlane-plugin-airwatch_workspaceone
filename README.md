@@ -18,19 +18,31 @@ This plugin features following actions :-
 1. deploy_build - To upload an iOS ipa OR Android APK to AirWatch/WorkspaceOne console.
 2. retire_previous_versions - The main purpose of this action is to retire previous active versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to retire all the previous active versions.
 3. delete_previous_versions - The main purpose of this action is to delete versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to delete all the versions.
+4. retire_specific_version - The main purpose of this action is to retire a specific version of an application. This action takes a string parameter where you can specify the version number to retire.
+5. delete_specific_version - The main purpose of this action is to delete a specific version of an application. This action takes a string parameter where you can specify the version number to delete.
+6. add_or_update_assignments_action - The main purpose of this action is to add a new smart group assignment to an application or to update an existing smart group assignment of an application with a given dictionary of deployment/assignment parameters. If a smart group name is provided which does not exist yet on Console, assignment for that smart group is ignored.
 
 ## Available options
 
 To check for available options, run
 
 ```bash
-fastlane action deploy_app
+fastlane action deploy_build
 ```
 ```bash
 fastlane action retire_previous_versions
 ```
 ```bash
 fastlane action delete_previous_versions
+```
+```bash
+fastlane action retire_specific_version
+```
+```bash
+fastlane action delete_specific_version
+```
+```bash
+fastlane action add_or_update_assignments_action
 ```
 
 ## Example
