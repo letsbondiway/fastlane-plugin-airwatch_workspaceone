@@ -204,7 +204,7 @@ module Fastlane
 
       def self.details
         # Optional:
-        "deploy_app - To upload an iOS ipa OR Android APK to AirWatch/WorkspaceOne console."
+        "deploy_build - To upload an iOS ipa OR Android APK to AirWatch/WorkspaceOne console."
       end
 
       def self.available_options
