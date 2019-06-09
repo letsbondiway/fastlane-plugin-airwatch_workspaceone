@@ -3,10 +3,10 @@ require_relative '../helper/airwatch_workspaceone_helper'
 
 module Fastlane
   module Actions
-    class RetirePreviousVersionsAction < Action
+    class DeletePreviousVersionsAction < Action
       
       APPS_LIST_SUFFIX = "/API/mam/apps/search?bundleid=%s"
-      INTERNAL_APP_RETIRE_SUFFIX = "/API/mam/apps/internal/%d/retire"
+      INTERNAL_APP_DELETE_SUFFIX = "/API/mam/apps/internal/%d"
       $is_debug = false
 
       def self.run(params)
@@ -36,49 +36,47 @@ module Fastlane
         keep_latest_versions_count  = params[:keep_latest_versions_count]
 
         # step 1: find app
-        UI.message("------------------------------")
-        UI.message("1. Finding active app versions")
-        UI.message("------------------------------")
+        UI.message("-----------------------")
+        UI.message("1. Finding app versions")
+        UI.message("-----------------------")
 
         appVersions = find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
-        UI.success("Found %d active app versions" % [appVersions.count])
+        UI.success("Found %d app versions" % [appVersions.count])
         UI.success("Version numbers: %s" % [appVersions.map {|appVersion| appVersion.values[1]}])
 
-        # step 2: retire previous versions
-        UI.message("-------------------------------")
-        UI.message("2. Retiring active app versions")
-        UI.message("-------------------------------")
+        # step 2: delete versions
+        UI.message("------------------------")
+        UI.message("2. Deleting app versions")
+        UI.message("------------------------")
 
         keep_latest_versions_count_int = keep_latest_versions_count.to_i
         if appVersions.count < keep_latest_versions_count_int
           UI.important("Given number of latest versions to keep is greater than available number of versions on the store.")
-          UI.important("Will retire all versions excpet the most latest version.")
-          keep_latest_versions_count_int = 1
+          UI.important("Will delete all versions.")
+          keep_latest_versions_count_int = 0
         end
 
         appVersions.pop(keep_latest_versions_count_int)
         appVersions.each do |appVersion|
-          retire_app(host_url, aw_tenant_code, b64_encoded_auth, appVersion)
+          delete_app(host_url, aw_tenant_code, b64_encoded_auth, appVersion)
         end
 
-        UI.success("Requested active app versions successfully retired")
+        UI.success("Requested app versions successfully deleted")
       end
 
       def self.find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
         # get the list of apps 
         data = list_apps(host_url, aw_tenant_code, b64_encoded_auth, app_identifier)
-        active_app_versions = Array.new
+        app_versions = Array.new
 
         data['Application'].each do |app|
-          if app['Status'] == "Active"
-            active_app_version = Hash.new
-            active_app_version['Id'] = app['Id']['Value']
-            active_app_version['Version'] = app['AppVersion']
-            active_app_versions << active_app_version
-          end
+          app_version = Hash.new
+          app_version['Id'] = app['Id']['Value']
+          app_version['Version'] = app['AppVersion']
+          app_versions << app_version
         end
 
-        return active_app_versions
+        return app_versions
       end
 
       def self.list_apps(host_url, aw_tenant_code, b64_encoded_auth, app_identifier)
@@ -97,31 +95,26 @@ module Fastlane
         return json
       end
 
-      def self.retire_app(host_url, aw_tenant_code, b64_encoded_auth, app_version)
+      def self.delete_app(host_url, aw_tenant_code, b64_encoded_auth, app_version)
         require 'rest-client'
         require 'json'
 
-        body = {
-          "applicationid" => app_version['Id']
-        }
-
-        UI.message("Starting to retire app version: %s" % [app_version['Version']])
-        response = RestClient.post(host_url + INTERNAL_APP_RETIRE_SUFFIX % [app_version['Id']], body.to_json,  {accept: :json, 'aw-tenant-code': aw_tenant_code, 'Authorization': "Basic " + b64_encoded_auth})
+        UI.message("Starting to delete app version: %s" % [app_version['Version']])
+        response = RestClient.delete(host_url + INTERNAL_APP_DELETE_SUFFIX % [app_version['Id']],  {accept: :json, 'aw-tenant-code': aw_tenant_code, 'Authorization': "Basic " + b64_encoded_auth})
 
         if debug
           UI.message("Response code: %d" % [response.code])
         end
 
-        if response.code == 202
-          UI.message("Successfully retired app version: %s" % [app_version['Version']])
+        if response.code == 204
+          UI.message("Successfully deleted app version: %s" % [app_version['Version']])
         else
-          json = JSON.parse(response.body)
-          UI.message("Failed to retire app version: %s" % [app_version['Version']])
+          UI.message("Failed to delete app version: %s" % [app_version['Version']])
         end
       end
 
       def self.description
-        "The main purpose of this action is to retire previous active versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to retire all the previous active versions."
+        "The main purpose of this action is to delete versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to delete all the versions."
       end
 
       def self.authors
@@ -134,7 +127,7 @@ module Fastlane
 
       def self.details
         # Optional:
-        "retire_previous_versions - To retire previous active versions of an application on the AirWatch console except the latest version."
+        "delete_previous_versions - To delete versions of an application on the AirWatch console."
       end
 
       def self.available_options
@@ -189,9 +182,9 @@ module Fastlane
                                description: "Name of the application",
                                   optional: true,
                                       type: String,
-                             default_value: "1",
+                             default_value: "0",
                               verify_block: proc do |value|
-                                              UI.user_error!("The number of latest versions to keep can not be zero or negative") unless value.to_i > 0
+                                              UI.user_error!("The number of latest versions to keep can not be zero or negative") unless value.to_i >= 0
                                             end),
 
           FastlaneCore::ConfigItem.new(key: :debug,
