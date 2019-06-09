@@ -5,12 +5,12 @@ module Fastlane
   module Actions
     class DeployBuildAction < Action
 
-      UPLOAD_BLOB_SUFFIX = "/API/mam/blobs/uploadblob?fileName=%s&organizationGroupId=%s"
-      BEGIN_INSTALL_SUFFIX = "/API/mam/apps/internal/begininstall"
+      UPLOAD_BLOB_SUFFIX    = "/API/mam/blobs/uploadblob?fileName=%s&organizationGroupId=%s"
+      BEGIN_INSTALL_SUFFIX  = "/API/mam/apps/internal/begininstall"
 
-      $is_debug = false
-      $device_type = "Apple"
-      $supported_device_models = Hash.new
+      $is_debug                 = false
+      $device_type              = "Apple"
+      $supported_device_models  = Hash.new
 
       def self.run(params)
         UI.message("The airwatch_workspaceone plugin is working!")
@@ -25,21 +25,20 @@ module Fastlane
           UI.message(" host_url: #{params[:host_url]}")
           UI.message(" aw_tenant_code: #{params[:aw_tenant_code]}")
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
+          UI.message(" organization_group_id: #{params[:org_group_id]}")
           UI.message(" app_name: #{params[:app_name]}")
           UI.message(" file_name: #{params[:file_name]}")
           UI.message(" path_to_file: #{params[:path_to_file]}")
-          UI.message(" organization_group_id: #{params[:org_group_id]}")
           UI.message(" push_mode: #{params[:push_mode]}")
-          UI.message("---------------------------------")
         end
 
-        host_url          = params[:host_url]
-        aw_tenant_code    = params[:aw_tenant_code]
-        b64_encoded_auth  = params[:b64_encoded_auth]
+        $host_url         = params[:host_url]
+        $aw_tenant_code   = params[:aw_tenant_code]
+        $b64_encoded_auth = params[:b64_encoded_auth]
+        $org_group_id     = params[:org_group_id]
         app_name          = params[:app_name]
         file_name         = params[:file_name]
         path_to_file      = params[:path_to_file]
-        org_group_id      = params[:org_group_id]
         push_mode         = params[:push_mode]
 
         # step 1: determining device type
@@ -64,7 +63,7 @@ module Fastlane
           UI.message("3. Uploading IPA file")
         end
         UI.message("---------------------")
-        blobID = upload_blob(host_url, aw_tenant_code, b64_encoded_auth, file_name, path_to_file, org_group_id)
+        blobID = upload_blob(file_name, path_to_file)
 
         if $device_type == "Android"
           UI.success("Successfully uploaded apk blob")
@@ -80,7 +79,7 @@ module Fastlane
         UI.message("------------------------------------")
         UI.message("4. Deploying app version on console")
         UI.message("------------------------------------")
-        deploy_app(host_url, aw_tenant_code, b64_encoded_auth, blobID, app_name, push_mode, org_group_id)
+        deploy_app(blobID, app_name, push_mode)
         UI.success("Successfully deployed the app version")
       end
 
@@ -134,21 +133,21 @@ module Fastlane
         return model_hash
       end
 
-      def self.upload_blob(host_url, aw_tenant_code, b64_encoded_auth, file_name, path_to_file, org_group_id)
+      def self.upload_blob(file_name, path_to_file)
         require 'rest-client'
         require 'json'
 
         response = RestClient::Request.execute(
-          :url => host_url + UPLOAD_BLOB_SUFFIX % [file_name, org_group_id],
-          :method => :post,
-          :headers => {
-            'Authorization' => "Basic " + b64_encoded_auth,
-            'aw-tenant-code' => aw_tenant_code,
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/octet-stream',
-            'Expect' => '100-continue'
+          :url      => $host_url + UPLOAD_BLOB_SUFFIX % [file_name, $org_group_id],
+          :method   => :post,
+          :headers  => {
+            'Authorization'   => "Basic " + $b64_encoded_auth,
+            'aw-tenant-code'  => $aw_tenant_code,
+            'Accept'          => 'application/json',
+            'Content-Type'    => 'application/octet-stream',
+            'Expect'          => '100-continue'
           },
-          :payload => File.open(path_to_file, "rb")
+          :payload  => File.open(path_to_file, "rb")
         )
 
         if debug
@@ -161,17 +160,17 @@ module Fastlane
         return json['Value']
       end
 
-      def self.deploy_app(host_url, aw_tenant_code, b64_encoded_auth, blobID, app_name, push_mode, org_group_id)
+      def self.deploy_app(blobID, app_name, push_mode)
         require 'rest-client'
         require 'json'
 
         body = {
-          "BlobId" => blobID.to_s,
-          "DeviceType" => $device_type, 
+          "BlobId"          => blobID.to_s,
+          "DeviceType"      => $device_type, 
           "ApplicationName" => app_name,
           "SupportedModels" => $supported_device_models,
-          "PushMode" => push_mode,
-          "LocationGroupId" => org_group_id
+          "PushMode"        => push_mode,
+          "LocationGroupId" => $org_group_id
         }
 
         if debug
@@ -179,7 +178,7 @@ module Fastlane
           UI.message(body.to_json)
         end
 
-        response = RestClient.post(host_url + BEGIN_INSTALL_SUFFIX, body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': aw_tenant_code, 'Authorization': "Basic " + b64_encoded_auth})
+        response = RestClient.post($host_url + BEGIN_INSTALL_SUFFIX, body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
 
         if debug
           UI.message("Response code: %d" % [response.code])
@@ -237,6 +236,15 @@ module Fastlane
                                               UI.user_error!("The authorization header is empty or the scheme is not basic") unless value and !value.empty?
                                             end),
 
+          FastlaneCore::ConfigItem.new(key: :org_group_id,
+                                  env_name: "AIRWATCH_ORGANIZATION_GROUP_ID",
+                               description: "Organization Group ID integer identifying the customer or container",
+                                  optional: false,
+                                      type: String,
+                              verify_block: proc do |value|
+                                              UI.user_error!("No Organization Group ID integer given, pass using `org_group_id: MyOrgGroupId`") unless value and !value.empty?
+                                            end),
+
           FastlaneCore::ConfigItem.new(key: :app_name,
                                   env_name: "AIRWATCH_APPLICATION_NAME",
                                description: "Name of the application",
@@ -262,15 +270,6 @@ module Fastlane
                                       type: String,
                               verify_block: proc do |value|
                                               UI.user_error!("Path to the file not given, pass using `path_to_file: '/path/to/the/file/on/disk'`") unless value and !value.empty?
-                                            end),
-
-          FastlaneCore::ConfigItem.new(key: :org_group_id,
-                                  env_name: "AIRWATCH_ORGANIZATION_GROUP_ID",
-                               description: "Organization Group ID integer identifying the customer or container",
-                                  optional: false,
-                                      type: String,
-                              verify_block: proc do |value|
-                                              UI.user_error!("No Organization Group ID integer given, pass using `org_group_id: MyOrgGroupId`") unless value and !value.empty?
                                             end),
 
           FastlaneCore::ConfigItem.new(key: :push_mode,

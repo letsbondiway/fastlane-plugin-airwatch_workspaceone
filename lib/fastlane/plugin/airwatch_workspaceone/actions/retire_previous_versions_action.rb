@@ -5,8 +5,9 @@ module Fastlane
   module Actions
     class RetirePreviousVersionsAction < Action
       
-      APPS_LIST_SUFFIX = "/API/mam/apps/search?bundleid=%s"
-      INTERNAL_APP_RETIRE_SUFFIX = "/API/mam/apps/internal/%d/retire"
+      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?bundleid=%s"
+      INTERNAL_APP_RETIRE_SUFFIX  = "/API/mam/apps/internal/%d/retire"
+      
       $is_debug = false
 
       def self.run(params)
@@ -25,12 +26,11 @@ module Fastlane
           UI.message(" app_identifier: #{params[:app_identifier]}")
           UI.message(" app_name: #{params[:app_name]}")
           UI.message(" keep_latest_versions_count: #{params[:keep_latest_versions_count]}")
-          UI.message("---------------------------------")
         end
 
-        host_url                    = params[:host_url]
-        aw_tenant_code              = params[:aw_tenant_code]
-        b64_encoded_auth            = params[:b64_encoded_auth]
+        $host_url                   = params[:host_url]
+        $aw_tenant_code             = params[:aw_tenant_code]
+        $b64_encoded_auth           = params[:b64_encoded_auth]
         app_identifier              = params[:app_identifier]
         app_name                    = params[:app_name]
         keep_latest_versions_count  = params[:keep_latest_versions_count]
@@ -40,9 +40,9 @@ module Fastlane
         UI.message("1. Finding active app versions")
         UI.message("------------------------------")
 
-        appVersions = find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
-        UI.success("Found %d active app versions" % [appVersions.count])
-        UI.success("Version numbers: %s" % [appVersions.map {|appVersion| appVersion.values[1]}])
+        app_versions = find_app(app_identifier)
+        UI.success("Found %d active app versions" % [app_versions.count])
+        UI.success("Version numbers: %s" % [app_versions.map {|app_version| app_version.values[1]}])
 
         # step 2: retire previous versions
         UI.message("-------------------------------")
@@ -56,17 +56,17 @@ module Fastlane
           keep_latest_versions_count_int = 1
         end
 
-        appVersions.pop(keep_latest_versions_count_int)
-        appVersions.each do |appVersion|
-          retire_app(host_url, aw_tenant_code, b64_encoded_auth, appVersion)
+        app_versions.pop(keep_latest_versions_count_int)
+        app_versions.each do |app_version|
+          retire_app(app_version)
         end
 
         UI.success("Requested active app versions successfully retired")
       end
 
-      def self.find_app(app_identifier, host_url, aw_tenant_code, b64_encoded_auth)
+      def self.find_app(app_identifier)
         # get the list of apps 
-        data = list_apps(host_url, aw_tenant_code, b64_encoded_auth, app_identifier)
+        data = list_app_versions(app_identifier)
         active_app_versions = Array.new
 
         data['Application'].each do |app|
@@ -81,11 +81,11 @@ module Fastlane
         return active_app_versions
       end
 
-      def self.list_apps(host_url, aw_tenant_code, b64_encoded_auth, app_identifier)
+      def self.list_app_versions(app_identifier)
         require 'rest-client'
         require 'json'
         
-        response = RestClient.get(host_url + APPS_LIST_SUFFIX % [app_identifier], {accept: :json, 'aw-tenant-code': aw_tenant_code, 'Authorization': "Basic " + b64_encoded_auth})
+        response = RestClient.get($host_url + APP_VERSIONS_LIST_SUFFIX % [app_identifier], {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
 
         if debug
           UI.message("Response code: %d" % [response.code])
@@ -97,7 +97,7 @@ module Fastlane
         return json
       end
 
-      def self.retire_app(host_url, aw_tenant_code, b64_encoded_auth, app_version)
+      def self.retire_app(app_version)
         require 'rest-client'
         require 'json'
 
@@ -106,7 +106,7 @@ module Fastlane
         }
 
         UI.message("Starting to retire app version: %s" % [app_version['Version']])
-        response = RestClient.post(host_url + INTERNAL_APP_RETIRE_SUFFIX % [app_version['Id']], body.to_json,  {accept: :json, 'aw-tenant-code': aw_tenant_code, 'Authorization': "Basic " + b64_encoded_auth})
+        response = RestClient.post($host_url + INTERNAL_APP_RETIRE_SUFFIX % [app_version['Id']], body.to_json,  {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
 
         if debug
           UI.message("Response code: %d" % [response.code])
