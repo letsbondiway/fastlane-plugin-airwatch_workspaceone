@@ -16,7 +16,8 @@ The main purpose of this plugin is to upload an IPA or an APK file to an AirWatc
 
 This plugin features two actions :-
 1. deploy_build - To upload an iOS ipa OR Android APK to AirWatch/WorkspaceOne console.
-2. retire_previous_versions - To retire all active versions of the application on the AirWatch console except the latest version.
+2. retire_previous_versions - The main purpose of this action is to retire previous active versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to retire all the previous active versions.
+3. delete_previous_versions - The main purpose of this action is to delete versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to delete all the versions.
 
 ## Available options
 
@@ -25,10 +26,11 @@ To check for available options, run
 ```bash
 fastlane action deploy_app
 ```
-and 
-
 ```bash
 fastlane action retire_previous_versions
+```
+```bash
+fastlane action delete_previous_versions
 ```
 
 ## Example
