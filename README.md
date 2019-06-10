@@ -12,10 +12,10 @@ fastlane add_plugin airwatch_workspaceone
 
 ## About airwatch_workspaceone
 
-The main purpose of this plugin is to upload an IPA or an APK file to an AirWatch or Workspace ONE enterprise instance/console.
+The main purpose of this plugin is to upload an IPA or an APK file to an AirWatch or Workspace ONE enterprise instance/console. For Android, the plugin works only with legacy AirWatch console and not with Workspace ONE console.
 
 This plugin features following actions :-
-1. deploy_build - To upload an iOS ipa OR Android APK to AirWatch/WorkspaceOne console.
+1. deploy_build - To upload an iOS ipa to both legacy AirWatch and Workspace ONE console. Also, to upload an Android APK to legacy AirWatch console.
 2. retire_previous_versions - The main purpose of this action is to retire previous active versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to retire all the previous active versions.
 3. delete_previous_versions - The main purpose of this action is to delete versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to delete all the versions.
 4. retire_specific_version - The main purpose of this action is to retire a specific version of an application. This action takes a string parameter where you can specify the version number to retire.
