@@ -65,14 +65,25 @@ module Fastlane
         # get the list of apps 
         data = list_app_versions(app_identifier)
         app_versions = Array.new
+        active_app_versions = Array.new
+        retired_app_versions = Array.new
 
         data['Application'].each do |app|
-          app_version = Hash.new
-          app_version['Id'] = app['Id']['Value']
-          app_version['Version'] = app['AppVersion']
-          app_versions << app_version
+          if app['Status'] == "Active"
+            active_app_version = Hash.new
+            active_app_version['Id'] = app['Id']['Value']
+            active_app_version['Version'] = app['AppVersion']
+            active_app_versions << active_app_version
+          elsif app["Status"] == "Retired"
+            retired_app_version = Hash.new
+            retired_app_version['Id'] = app['Id']['Value']
+            retired_app_version['Version'] = app['AppVersion']
+            retired_app_versions << retired_app_version
+          end
         end
 
+        app_versions.push(*retired_app_versions)
+        app_versions.push(*active_app_versions)
         return app_versions
       end
 
