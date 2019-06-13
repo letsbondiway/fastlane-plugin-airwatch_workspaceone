@@ -17,46 +17,105 @@ default_platform(:ios)
 
 platform :ios do
 
-	desc "This lane deploys the ipa to AirWatch server"
-	lane :deploy_app_example1 do
+  # Set debug option to false if you do not want to capture debug logs. Also, this is an optional parameter and is present in all actions of fastlane-plugin-airwatch_workspaceone. If not given, it defaults to false.
 
+  desc "This lane deploys the IPA to WS1 store"
+  lane :deploy_ws1_example1 do
     deploy_build(host_url: <your-host-url>,
-    	aw_tenant_code: <your-api-token-code>,
-    	b64_encoded_auth: <your-b64-encoded-auth-string>,
-    	app_name: <name-of-your-app>,
-    	file_name: "PluginTest.ipa",
-      	path_to_file: "/path/to/PluginTest.ipa",
-      	org_group_id: <your-org-group-integer-id>,
-      	push_mode: "On demand",
-      	debug: true
-    )
-	end
-
-	desc "This lane deploys the ipa to AirWatch server. In this lane, host_url, aw_tenant_code, b64_encoded_auth, app_name and org_group_id are picked from a .env file located in the same folder as Fastfile"
-	lane :deploy_app_example2 do
-
-    deploy_build(file_name: "PluginTest.ipa",
-      	path_to_file: "/path/to/PluginTest.ipa",
-      	push_mode: "Auto"
-    )
-	end
-
-	desc "This lane retires all the active versions of the app except the latest version"
-	lane :retire_versions_example1 do
-
-    retire_previous_versions(host_url: <your-host-url>,
-    	aw_tenant_code: <your-api-token-code>,
-    	b64_encoded_auth: <your-b64-encoded-auth-string>,
-    	app_name: <name-of-your-app>,
-    	app_identifier: "com.yourapp.bundleid"
-    )
-	end
-
-	desc "This lane retires all the active versions of the app except the latest version. . In this lane, host_url, aw_tenant_code, b64_encoded_auth, app_name and org_group_id are picked from a .env file located in the same folder as Fastfile"
-	lane :retire_versions_example2 do
-
-    retire_previous_versions(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+      aw_tenant_code: <your-api-token-code>,
+      b64_encoded_auth: <your-b64-encoded-auth-string>,
+      app_name: <name-of-your-app>,
+      file_name: "PluginTest.ipa",
+      path_to_file: "/path/to/PluginTest.ipa",
+      org_group_id: <your-org-group-integer-id>,
+      push_mode: "On demand", # or "Auto"
       debug: true
     )
-	end
+  end
+
+  # All the lane definitions below this line assumes that host_url, aw_tenant_code, b64_encoded_auth, app_name and org_group_id come from a .env file
+
+  desc "This lane deploys the IPA to WS1 store"
+  lane :deploy_ws1_example2 do
+  deploy_build(file_name: "PluginTest.ipa",
+    path_to_file: "/path/to/PluginTest.ipa",
+    push_mode: "On demand", # or "Auto"
+    debug: true
+  )
+  end
+
+  ASSIGNMENT_PARAMETERS = {
+    "PushMode": "On demand",
+    "RemoveOnUnEnroll": true,
+    "ApplicationBackup": true,
+    "AutoUpdateDevicesWithPreviousVersion": true,
+    "AdaptiveManagement": true,
+    "AllowManagement": true,
+    "VisibleInAppCatalog": true,
+    "IsPerAppVpnEnabled": true,
+    "VpnProfileId": <your-vpn-profile-id>
+  }
+
+  desc "This lane adds or updates smart group assignments along with deployment parameters for the app on WS1 store"
+  lane :assignments_ws1 do
+  add_or_update_assignments(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+    smart_groups_to_assign: ["ABC", "DEF", "XYZ"],
+    assignment_parameters: ASSIGNMENT_PARAMETERS,
+    debug: true
+  )
+  end
+
+  desc "This lane retires all the active versions of the app except the latest version on WS1 store"
+  lane :retire_ws1_example1 do
+  retire_previous_versions(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+    debug: false
+  )
+  end
+
+  # debug option is not given in below lane and hence defaults to false
+
+  desc "This lane retires all the active versions of the app except the 4 latest versions on WS1 store"
+  lane :retire_ws1_example2 do
+  retire_previous_versions(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+    keep_latest_versions_count: "4"
+  )
+  end
+
+  desc "This lane retires specific version of the app on WS1 store"
+  lane :retire_ws1_example3 do
+  retire_specific_version(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+    version_number: "1.0.7",
+    debug: true
+  )
+  end
+
+  desc "This lane deletes all the versions of the app on WS1 store"
+  lane :delete_ws1_example1 do
+  delete_previous_versions(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    debug: true
+  )
+  end
+
+  desc "This lane deletes all the versions of the app except the 4 latest versions on WS1 store"
+  lane :delete_ws1_example2 do
+  delete_previous_versions(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+    keep_latest_versions_count: "4",
+    debug: true
+  )
+  end
+
+  desc "This lane deletes specific version of the app on WS1 store"
+  lane :delete_ws1_example3 do
+  delete_specific_version(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+    version_number: "1.0.1",
+    debug: true
+  )
+  end
+
+  desc "This lane unretires all the retired versions of the app on WS1 store"
+  lane :unretire_ws1 do
+    unretire_all_versions(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+      debug: true
+    )
+  end
 end
