@@ -51,7 +51,18 @@ fastlane action unretire_all_versions
 
 ## Example
 
-Check out the [example `Fastfile`](fastlane/Fastfile) to see how to use this plugin.
+Check out the [example `Fastfile`](fastlane/Fastfile) to see example lanes.
+
+To make use of this plugin, run one of the lanes using the following command -
+
+```bash
+bundle exec fastlane lane_name
+```
+If you are using .env files (please find sample - .env.development at the same folder where Fastfile is located), please specify using --env parameter
+
+```bash
+bundle exec fastlane lane_name --env development
+```
 
 ## Run tests for this plugin
 
