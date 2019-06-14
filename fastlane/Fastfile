@@ -21,7 +21,7 @@ platform :ios do
 
   desc "This lane deploys the IPA to WS1 store"
   lane :deploy_ws1_example1 do
-    deploy_build(host_url: <your-host-url>,
+    deploy_build(host_url: <your-host-url>, # Please do not append /API/ at the end; you should pass https://asxxx.awmdm.com
       aw_tenant_code: <your-api-token-code>,
       b64_encoded_auth: <your-b64-encoded-auth-string>,
       app_name: <name-of-your-app>,
