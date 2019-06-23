@@ -15,13 +15,14 @@ fastlane add_plugin airwatch_workspaceone
 The main purpose of this plugin is to upload an IPA or an APK file to an AirWatch or Workspace ONE enterprise instance/console. For Android, the plugin works only with legacy AirWatch console and not with Workspace ONE console.
 
 This plugin features following actions :-
-1. deploy_build - To upload an iOS ipa to both legacy AirWatch and Workspace ONE console. Also, to upload an Android APK to legacy AirWatch console.
+1. deploy_build - The main purpose of this action is to upload an IPA or an APK file to an AirWatch or Workspace ONE enterprise console.
 2. retire_previous_versions - The main purpose of this action is to retire previous active versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to retire all the previous active versions.
 3. delete_previous_versions - The main purpose of this action is to delete versions of an application. This action takes a string parameter where you can specify the number of latest versions to keep if you do not want to delete all the versions.
 4. retire_specific_version - The main purpose of this action is to retire a specific version of an application. This action takes a string parameter where you can specify the version number to retire.
 5. delete_specific_version - The main purpose of this action is to delete a specific version of an application. This action takes a string parameter where you can specify the version number to delete.
-6. add_or_update_assignments_action - The main purpose of this action is to add a new smart group assignment to an application or to update an existing smart group assignment of an application with a given dictionary of deployment/assignment parameters. If a smart group name is provided which does not exist yet on Console, assignment for that smart group is ignored.
+6. add_or_update_assignments - The main purpose of this action is to add a new smart group assignment to an application or to update an existing smart group assignment of an application with a given dictionary of deployment/assignment parameters. If a smart group name is provided which does not exist yet on Console, assignment for that smart group is ignored.
 7. unretire_all_versions - The main purpose of this action is to unretire all retired versions of an application.
+8. unretire_specific_version - The main purpose of this action is to unretire a specific version of an application. This action takes a string parameter where you can specify the version number to unretire.
 
 ## Available options
 
@@ -47,6 +48,9 @@ fastlane action add_or_update_assignments
 ```
 ```bash
 fastlane action unretire_all_versions
+```
+```bash
+fastlane action unretire_specific_versions
 ```
 Please do not append /API/ at the end of host_url option in any of the actions; you should pass something like - https://asxxx.awmdm.com. Thanks to [Willie Stewart](https://github.com/wstewartii) for facing an [issue](https://github.com/letsbondiway/fastlane-plugin-airwatch_workspaceone/issues/2) because of this due to which this gets documented.
 ## Example
