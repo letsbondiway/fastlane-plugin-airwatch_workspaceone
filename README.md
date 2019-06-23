@@ -50,7 +50,7 @@ fastlane action add_or_update_assignments
 fastlane action unretire_all_versions
 ```
 ```bash
-fastlane action unretire_specific_versions
+fastlane action unretire_specific_version
 ```
 Please do not append /API/ at the end of host_url option in any of the actions; you should pass something like - https://asxxx.awmdm.com. Thanks to [Willie Stewart](https://github.com/wstewartii) for facing an [issue](https://github.com/letsbondiway/fastlane-plugin-airwatch_workspaceone/issues/2) because of this due to which this gets documented.
 ## Example
