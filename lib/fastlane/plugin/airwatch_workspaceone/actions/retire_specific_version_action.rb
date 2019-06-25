@@ -5,7 +5,7 @@ module Fastlane
   module Actions
     class RetireSpecificVersionAction < Action
       
-      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?bundleid=%s"
+      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?applicationtype=Internal&bundleid=%s"
       INTERNAL_APP_RETIRE_SUFFIX  = "/API/mam/apps/internal/%d/retire"
       
       $is_debug = false

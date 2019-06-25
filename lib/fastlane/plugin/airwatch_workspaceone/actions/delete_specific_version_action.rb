@@ -5,7 +5,7 @@ module Fastlane
   module Actions
     class DeleteSpecificVersionAction < Action
       
-      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?bundleid=%s"
+      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?applicationtype=Internal&bundleid=%s"
       INTERNAL_APP_DELETE_SUFFIX  = "/API/mam/apps/internal/%d"
       
       $is_debug = false

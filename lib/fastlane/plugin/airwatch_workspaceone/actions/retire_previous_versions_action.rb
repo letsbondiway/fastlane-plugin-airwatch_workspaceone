@@ -5,7 +5,7 @@ module Fastlane
   module Actions
     class RetirePreviousVersionsAction < Action
       
-      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?bundleid=%s"
+      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?applicationtype=Internal&bundleid=%s"
       INTERNAL_APP_RETIRE_SUFFIX  = "/API/mam/apps/internal/%d/retire"
       
       $is_debug = false
@@ -32,6 +32,7 @@ module Fastlane
         $b64_encoded_auth           = params[:b64_encoded_auth]
         app_identifier              = params[:app_identifier]
         keep_latest_versions_count  = params[:keep_latest_versions_count]
+        UI.message(APP_VERSIONS_LIST_SUFFIX % [app_identifier])
 
         # step 1: find app
         UI.message("------------------------------")
@@ -88,7 +89,7 @@ module Fastlane
         if debug
           UI.message("Response code: %d" % [response.code])
           UI.message("Response body:")
-          UI.message(response.body)
+          UI.message(JSON.pretty_generate(response.body))
         end
 
         if response.code != 200

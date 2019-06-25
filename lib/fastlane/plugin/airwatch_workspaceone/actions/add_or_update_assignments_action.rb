@@ -5,7 +5,7 @@ module Fastlane
   module Actions
     class AddOrUpdateAssignmentsAction < Action
 
-      APP_VERSIONS_LIST_SUFFIX      = "/API/mam/apps/search?bundleid=%s"
+      APP_VERSIONS_LIST_SUFFIX      = "/API/mam/apps/search?applicationtype=Internal&bundleid=%s"
       ADD_UPDATE_ASSIGNMENT_SUFFIX  = "/API/mam/apps/internal/%d/assignments"
       SEARCH_SMART_GROUP_SUFFIX     = "/API/mdm/smartgroups/search?name=%s&organizationgroupid=%d"
 
