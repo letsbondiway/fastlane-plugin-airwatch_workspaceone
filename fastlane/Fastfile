@@ -18,6 +18,7 @@ default_platform(:ios)
 platform :ios do
 
   # Set debug option to false if you do not want to capture debug logs. Also, this is an optional parameter and is present in all actions of fastlane-plugin-airwatch_workspaceone. If not given, it defaults to false.
+  # Omit the app_version option if you want Airwatch internal app version to be the same as the file version
 
   desc "This lane deploys the IPA to AW/WS1 Console"
   lane :deploy_ws1_example1 do
@@ -25,6 +26,7 @@ platform :ios do
       aw_tenant_code: <your-api-token-code>,
       b64_encoded_auth: <your-b64-encoded-auth-string>,
       app_name: <name-of-your-app>,
+      app_version: <version-of-your-app>, # optional - Airwatch internal app version
       file_name: "PluginTest.ipa",
       path_to_file: "/path/to/PluginTest.ipa",
       org_group_id: <your-org-group-integer-id>,

@@ -27,6 +27,7 @@ module Fastlane
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
           UI.message(" organization_group_id: #{params[:org_group_id]}")
           UI.message(" app_name: #{params[:app_name]}")
+          UI.message(" app_name: #{params[:app_version]}")
           UI.message(" file_name: #{params[:file_name]}")
           UI.message(" path_to_file: #{params[:path_to_file]}")
           UI.message(" push_mode: #{params[:push_mode]}")
@@ -37,6 +38,7 @@ module Fastlane
         $b64_encoded_auth = params[:b64_encoded_auth]
         $org_group_id     = params[:org_group_id]
         app_name          = params[:app_name]
+        app_version       = params[:app_version]
         file_name         = params[:file_name]
         path_to_file      = params[:path_to_file]
         push_mode         = params[:push_mode]
@@ -79,7 +81,7 @@ module Fastlane
         UI.message("-----------------------------------")
         UI.message("4. Deploying app version on console")
         UI.message("-----------------------------------")
-        deploy_app(blobID, app_name, push_mode)
+        deploy_app(blobID, app_name, app_version, push_mode)
         UI.success("Successfully deployed the app version")
       end
 
@@ -160,7 +162,7 @@ module Fastlane
         return json['Value']
       end
 
-      def self.deploy_app(blobID, app_name, push_mode)
+      def self.deploy_app(blobID, app_name, app_version, push_mode)
         require 'rest-client'
         require 'json'
 
@@ -168,17 +170,20 @@ module Fastlane
           "BlobId"          => blobID.to_s,
           "DeviceType"      => $device_type, 
           "ApplicationName" => app_name,
+          "AppVersion"      => app_version,
           "SupportedModels" => $supported_device_models,
           "PushMode"        => push_mode,
           "LocationGroupId" => $org_group_id
         }
 
+        clean_body.delete_if { |k, v| v.nil? }
+
         if debug
           UI.message("Deploy Request JSON:")
-          UI.message(body.to_json)
+          UI.message(clean_body.to_json)
         end
 
-        response = RestClient.post($host_url + BEGIN_INSTALL_SUFFIX, body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
+        response = RestClient.post($host_url + BEGIN_INSTALL_SUFFIX, clean_body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
 
         if debug
           UI.message("Response code: %d" % [response.code])
@@ -253,6 +258,13 @@ module Fastlane
                               verify_block: proc do |value|
                                               UI.user_error!("No app name given, pass using `app_name: 'My sample app'`") unless value and !value.empty?
                                             end),
+                                            
+          FastlaneCore::ConfigItem.new(key: :app_version,
+                                  env_name: "AIRWATCH_APPLICATION_VERSION",
+                               description: "Airwatch Internal App Version",
+                                  optional: true,
+                                      type: String,
+                             default_value: nil),                                         
 
           FastlaneCore::ConfigItem.new(key: :file_name,
                                   env_name: "AIRWATCH_FILE_NAME",
