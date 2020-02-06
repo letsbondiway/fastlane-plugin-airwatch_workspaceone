@@ -176,7 +176,7 @@ module Fastlane
           "LocationGroupId" => $org_group_id
         }
 
-        clean_body.delete_if { |k, v| v.nil? }
+        clean_body = body.delete_if { |k, v| v.nil? }
 
         if debug
           UI.message("Deploy Request JSON:")
