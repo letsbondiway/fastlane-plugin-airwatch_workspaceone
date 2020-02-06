@@ -176,14 +176,12 @@ module Fastlane
           "LocationGroupId" => $org_group_id
         }
 
-        clean_body = body.delete_if { |k, v| v.nil? }
-
         if debug
           UI.message("Deploy Request JSON:")
-          UI.message(clean_body.to_json)
+          UI.message(body.to_json)
         end
 
-        response = RestClient.post($host_url + BEGIN_INSTALL_SUFFIX, clean_body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
+        response = RestClient.post($host_url + BEGIN_INSTALL_SUFFIX, body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
 
         if debug
           UI.message("Response code: %d" % [response.code])
