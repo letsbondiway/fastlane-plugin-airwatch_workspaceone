@@ -27,7 +27,7 @@ module Fastlane
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
           UI.message(" organization_group_id: #{params[:org_group_id]}")
           UI.message(" app_name: #{params[:app_name]}")
-          UI.message(" app_name: #{params[:app_version]}")
+          UI.message(" app_version: #{params[:app_version]}")
           UI.message(" file_name: #{params[:file_name]}")
           UI.message(" path_to_file: #{params[:path_to_file]}")
           UI.message(" push_mode: #{params[:push_mode]}")
