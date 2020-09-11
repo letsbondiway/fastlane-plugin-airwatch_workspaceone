@@ -181,7 +181,14 @@ module Fastlane
           UI.message(body.to_json)
         end
 
-        response = RestClient.post($host_url + BEGIN_INSTALL_SUFFIX, body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
+        begin
+          response = RestClient.post($host_url + BEGIN_INSTALL_SUFFIX, body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
+        rescue RestClient::ExceptionWithResponse => e
+          UI.message("ERROR! Response code: %d" % [e.response.code])
+          UI.message("Response body:")
+          UI.message(e.response.body)
+          raise
+        end
 
         if debug
           UI.message("Response code: %d" % [response.code])
