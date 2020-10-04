@@ -5,7 +5,6 @@ module Fastlane
   module Actions
     class AddOrUpdateAssignmentsAction < Action
 
-      APP_VERSIONS_LIST_SUFFIX      = "/API/mam/apps/search?applicationtype=Internal&bundleid=%s"
       ADD_UPDATE_ASSIGNMENT_SUFFIX  = "/API/mam/apps/internal/%d/assignments"
       SEARCH_SMART_GROUP_SUFFIX     = "/API/mdm/smartgroups/search?name=%s&organizationgroupid=%d"
 
@@ -103,8 +102,8 @@ module Fastlane
 
       def self.find_app_smart_groups(app_identifier)
         # get the list of apps 
-        data = list_app_versions(app_identifier)
-        app_versions = data['Application']
+        apps = Helper::AirwatchWorkspaceoneHelper.list_app_versions(app_identifier, $host_url, $aw_tenant_code, $b64_encoded_auth, $org_group_id, debug)
+        app_versions = apps['Application']
 
         if app_versions.count <= 0
           UI.user_error!("No app found on the console having bundle identifier: %s" % [app_identifier])
@@ -119,35 +118,14 @@ module Fastlane
         return app_smart_groups
       end
 
-      def self.list_app_versions(app_identifier)
-        require 'rest-client'
-        require 'json'
-        
-        response = RestClient.get($host_url + APP_VERSIONS_LIST_SUFFIX % [app_identifier], {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
-
-        if debug
-          UI.message("Response code: %d" % [response.code])
-          UI.message("Response body:")
-          UI.message(response.body)
-        end
-
-        if response.code != 200
-          UI.user_error!("There was an error in finding app versions. One possible reason is that an app with the bundle identifier given does not exist on Console.")
-          exit
-        end
-
-        json = JSON.parse(response.body)
-        return json
-      end
-
       def self.find_smart_group_id(smart_group_name)
-        data = fetch_smart_group_details(smart_group_name)
+        smart_groups = fetch_smart_group_details(smart_group_name)
         smart_group_id = -1
-        if data.empty?
+        if smart_groups.empty?
           return smart_group_id
         end
 
-        data['SmartGroups'].each do |smart_group|
+        smart_groups['SmartGroups'].each do |smart_group|
           smart_group_id = smart_group['SmartGroupID']
         end
 

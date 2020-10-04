@@ -128,7 +128,6 @@ module Fastlane
       end
 
       def self.create_model_for(model_id, model_name)
-
         model_hash = Hash.new
         model_hash['ModelId'] = model_id
         model_hash['ModelName'] = model_name

@@ -5,9 +5,6 @@ module Fastlane
   module Actions
     class RetireSpecificVersionAction < Action
       
-      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?applicationtype=Internal&bundleid=%s"
-      INTERNAL_APP_RETIRE_SUFFIX  = "/API/mam/apps/internal/%d/retire"
-      
       $is_debug = false
 
       def self.run(params)
@@ -23,6 +20,7 @@ module Fastlane
           UI.message(" host_url: #{params[:host_url]}")
           UI.message(" aw_tenant_code: #{params[:aw_tenant_code]}")
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
+          UI.message(" organization_group_id: #{params[:org_group_id]}")
           UI.message(" app_identifier: #{params[:app_identifier]}")
           UI.message(" version_number: #{params[:version_number]}")
         end
@@ -30,6 +28,7 @@ module Fastlane
         $host_url         = params[:host_url]
         $aw_tenant_code   = params[:aw_tenant_code]
         $b64_encoded_auth = params[:b64_encoded_auth]
+        $org_group_id     = params[:org_group_id]
         app_identifier    = params[:app_identifier]
         version_number    = params[:version_number]
 
@@ -38,7 +37,7 @@ module Fastlane
         UI.message("1. Finding active app versions")
         UI.message("------------------------------")
 
-        app_versions = find_app(app_identifier)
+        app_versions = Helper::AirwatchWorkspaceoneHelper.find_app_versions(app_identifier, 'Active', $host_url, $aw_tenant_code, $b64_encoded_auth, $org_group_id, debug)
         app_version_numbers = app_versions.map {|app_version| app_version.values[1]}
         UI.success("Found %d active app version(s)" % [app_versions.count])
         UI.success("Version number(s): %s" % [app_version_numbers])
@@ -51,74 +50,12 @@ module Fastlane
         if app_version_numbers.include? version_number
           version_index = app_version_numbers.index(version_number)
           app_version_to_retire = app_versions[version_index]
-          retire_app(app_version_to_retire)
+          Helper::AirwatchWorkspaceoneHelper.retire_app(app_version_to_retire, $host_url, $aw_tenant_code, $b64_encoded_auth, debug)
         else
           UI.user_error!("A version with the given version number: %s does not exist on the console for this application or is already retired." % [version_number])
         end
 
         UI.success("Version %s successfully retired" % [version_number])
-      end
-
-      def self.find_app(app_identifier)
-        # get the list of apps 
-        data = list_app_versions(app_identifier)
-        active_app_versions = Array.new
-
-        data['Application'].each do |app|
-          if app['Status'] == "Active"
-            active_app_version = Hash.new
-            active_app_version['Id'] = app['Id']['Value']
-            active_app_version['Version'] = app['AppVersion']
-            active_app_versions << active_app_version
-          end
-        end
-
-        active_app_versions.sort_by! { |app_version| app_version["Id"] }
-        return active_app_versions
-      end
-
-      def self.list_app_versions(app_identifier)
-        require 'rest-client'
-        require 'json'
-        
-        response = RestClient.get($host_url + APP_VERSIONS_LIST_SUFFIX % [app_identifier], {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
-
-        if debug
-          UI.message("Response code: %d" % [response.code])
-          UI.message("Response body:")
-          UI.message(response.body)
-        end
-
-        if response.code != 200
-          UI.user_error!("There was an error in finding app versions. One possible reason is that an app with the bundle identifier given does not exist on Console.")
-          exit
-        end
-
-        json = JSON.parse(response.body)
-        return json
-      end
-
-      def self.retire_app(app_version)
-        require 'rest-client'
-        require 'json'
-
-        body = {
-          "applicationid" => app_version['Id']
-        }
-
-        UI.message("Starting to retire app version: %s" % [app_version['Version']])
-        response = RestClient.post($host_url + INTERNAL_APP_RETIRE_SUFFIX % [app_version['Id']], body.to_json,  {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
-
-        if debug
-          UI.message("Response code: %d" % [response.code])
-        end
-
-        if response.code == 202
-          UI.message("Successfully retired app version: %s" % [app_version['Version']])
-        else
-          json = JSON.parse(response.body)
-          UI.message("Failed to retire app version: %s" % [app_version['Version']])
-        end
       end
 
       def self.description
@@ -165,6 +102,15 @@ module Fastlane
                                       type: String,
                               verify_block: proc do |value|
                                               UI.user_error!("The authorization header is empty or the scheme is not basic, pass using `b64_encoded_auth: 'yourb64encodedauthstring'`") unless value and !value.empty?
+                                            end),
+
+          FastlaneCore::ConfigItem.new(key: :org_group_id,
+                                  env_name: "AIRWATCH_ORGANIZATION_GROUP_ID",
+                               description: "Organization Group ID integer identifying the customer or container",
+                                  optional: false,
+                                      type: String,
+                              verify_block: proc do |value|
+                                              UI.user_error!("No Organization Group ID integer given, pass using `org_group_id: 'yourorggrpintid'`") unless value and !value.empty?
                                             end),
 
           FastlaneCore::ConfigItem.new(key: :app_identifier,

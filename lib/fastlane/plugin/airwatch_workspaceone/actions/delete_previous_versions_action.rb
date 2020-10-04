@@ -5,9 +5,6 @@ module Fastlane
   module Actions
     class DeletePreviousVersionsAction < Action
       
-      APP_VERSIONS_LIST_SUFFIX    = "/API/mam/apps/search?applicationtype=Internal&bundleid=%s"
-      INTERNAL_APP_DELETE_SUFFIX  = "/API/mam/apps/internal/%d"
-      
       $is_debug = false
 
       def self.run(params)
@@ -23,6 +20,7 @@ module Fastlane
           UI.message(" host_url: #{params[:host_url]}")
           UI.message(" aw_tenant_code: #{params[:aw_tenant_code]}")
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
+          UI.message(" organization_group_id: #{params[:org_group_id]}")
           UI.message(" app_identifier: #{params[:app_identifier]}")
           UI.message(" keep_latest_versions_count: #{params[:keep_latest_versions_count]}")
         end
@@ -30,6 +28,7 @@ module Fastlane
         $host_url                   = params[:host_url]
         $aw_tenant_code             = params[:aw_tenant_code]
         $b64_encoded_auth           = params[:b64_encoded_auth]
+        $org_group_id               = params[:org_group_id]
         app_identifier              = params[:app_identifier]
         keep_latest_versions_count  = params[:keep_latest_versions_count]
 
@@ -38,7 +37,7 @@ module Fastlane
         UI.message("1. Finding app versions")
         UI.message("-----------------------")
 
-        app_versions = find_app(app_identifier)
+        app_versions = find_app_versions(app_identifier)
         UI.success("Found %d app version(s)" % [app_versions.count])
         UI.success("Version number(s): %s" % [app_versions.map {|app_version| app_version.values[1]}])
 
@@ -55,29 +54,25 @@ module Fastlane
           app_versions.pop(keep_latest_versions_count_int)
           UI.important("Version number(s) to delete: %s" % [app_versions.map {|app_version| app_version.values[1]}])
           app_versions.each do |app_version|
-            delete_app(app_version)
+            Helper::AirwatchWorkspaceoneHelper.delete_app(app_version, $host_url, $aw_tenant_code, $b64_encoded_auth, debug)
           end
           UI.success("Version(s) %s successfully deleted." % [app_versions.map {|app_version| app_version.values[1]}])
         end
       end
 
-      def self.find_app(app_identifier)
+      def self.find_app_versions(app_identifier)
         # get the list of apps 
-        data = list_app_versions(app_identifier)
+        apps = Helper::AirwatchWorkspaceoneHelper.list_app_versions(app_identifier, $host_url, $aw_tenant_code, $b64_encoded_auth, $org_group_id, debug)
         app_versions = Array.new
         active_app_versions = Array.new
         retired_app_versions = Array.new
 
-        data['Application'].each do |app|
+        apps['Application'].each do |app|
           if app['Status'] == "Active"
-            active_app_version = Hash.new
-            active_app_version['Id'] = app['Id']['Value']
-            active_app_version['Version'] = app['AppVersion']
+            active_app_version = Helper::AirwatchWorkspaceoneHelper.construct_app_version(app)
             active_app_versions << active_app_version
           elsif app["Status"] == "Retired"
-            retired_app_version = Hash.new
-            retired_app_version['Id'] = app['Id']['Value']
-            retired_app_version['Version'] = app['AppVersion']
+            retired_app_version = Helper::AirwatchWorkspaceoneHelper.construct_app_version(app)
             retired_app_versions << retired_app_version
           end
         end
@@ -87,45 +82,6 @@ module Fastlane
         app_versions.push(*retired_app_versions)
         app_versions.push(*active_app_versions)
         return app_versions
-      end
-
-      def self.list_app_versions(app_identifier)
-        require 'rest-client'
-        require 'json'
-        
-        response = RestClient.get($host_url + APP_VERSIONS_LIST_SUFFIX % [app_identifier], {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
-
-        if debug
-          UI.message("Response code: %d" % [response.code])
-          UI.message("Response body:")
-          UI.message(response.body)
-        end
-
-        if response.code != 200
-          UI.user_error!("There was an error in finding app versions. One possible reason is that an app with the bundle identifier given does not exist on Console.")
-          exit
-        end
-
-        json = JSON.parse(response.body)
-        return json
-      end
-
-      def self.delete_app(app_version)
-        require 'rest-client'
-        require 'json'
-
-        UI.message("Starting to delete app version: %s" % [app_version['Version']])
-        response = RestClient.delete($host_url + INTERNAL_APP_DELETE_SUFFIX % [app_version['Id']],  {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
-
-        if debug
-          UI.message("Response code: %d" % [response.code])
-        end
-
-        if response.code == 204
-          UI.message("Successfully deleted app version: %s" % [app_version['Version']])
-        else
-          UI.message("Failed to delete app version: %s" % [app_version['Version']])
-        end
       end
 
       def self.description
@@ -172,6 +128,15 @@ module Fastlane
                                       type: String,
                               verify_block: proc do |value|
                                               UI.user_error!("The authorization header is empty or the scheme is not basic, pass using `b64_encoded_auth: 'yourb64encodedauthstring'`") unless value and !value.empty?
+                                            end),
+
+          FastlaneCore::ConfigItem.new(key: :org_group_id,
+                                  env_name: "AIRWATCH_ORGANIZATION_GROUP_ID",
+                               description: "Organization Group ID integer identifying the customer or container",
+                                  optional: false,
+                                      type: String,
+                              verify_block: proc do |value|
+                                              UI.user_error!("No Organization Group ID integer given, pass using `org_group_id: 'yourorggrpintid'`") unless value and !value.empty?
                                             end),
 
           FastlaneCore::ConfigItem.new(key: :app_identifier,
