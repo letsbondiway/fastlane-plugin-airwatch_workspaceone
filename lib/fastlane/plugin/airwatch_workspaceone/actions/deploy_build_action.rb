@@ -3,10 +3,15 @@ require_relative '../helper/airwatch_workspaceone_helper'
 
 module Fastlane
   module Actions
+    module SharedValues
+      DEPLOYED_APP_UUID ||= :SIGH_PROFILE_PATH
+    end
+
     class DeployBuildAction < Action
 
       UPLOAD_BLOB_SUFFIX    = "/API/mam/blobs/uploadblob?fileName=%s&organizationGroupId=%s"
       BEGIN_INSTALL_SUFFIX  = "/API/mam/apps/internal/begininstall"
+      DELETE_BLOB_SUFFIX    = "/API/mam/blobs/blob/%d"
 
       $is_debug                 = false
       $device_type              = "Apple"
@@ -183,9 +188,10 @@ module Fastlane
         begin
           response = RestClient.post($host_url + BEGIN_INSTALL_SUFFIX, body.to_json, {content_type: :json, accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
         rescue RestClient::ExceptionWithResponse => e
-          UI.message("ERROR! Response code: %d" % [e.response.code])
-          UI.message("Response body:")
-          UI.message(e.response.body)
+          UI.error("ERROR! Response code: %d" % [e.response.code])
+          UI.error("Response body:")
+          UI.error(e.response.body)
+          delete_blob(blobID)
           raise
         end
 
@@ -196,7 +202,36 @@ module Fastlane
         end
 
         json = JSON.parse(response.body)
+        Actions.lane_context[SharedValues::DEPLOYED_APP_UUID] = json['Uuid']
         return json
+      end
+
+      def self.delete_blob(blobID)
+        require 'rest-client'
+        require 'json'
+
+        if debug
+          UI.message("Deleting Blob with ID: %d" % [blobID])
+        end
+
+        begin
+          response = RestClient.delete($host_url + DELETE_BLOB_SUFFIX % [blobID],  {accept: :json, 'aw-tenant-code': $aw_tenant_code, 'Authorization': "Basic " + $b64_encoded_auth})
+        rescue RestClient::ExceptionWithResponse => e
+          UI.error("ERROR! Response code: %d" % [e.response.code])
+          UI.error("Response body:")
+          UI.error(e.response.body)
+          raise
+        end
+
+        if debug
+          UI.message("Response code: %d" % [response.code])
+        end
+
+        if response.code == 200
+          UI.message("Successfully deleted blob")
+        else
+          UI.message("Failed to delete blob")
+        end
       end
 
       def self.description
@@ -205,6 +240,12 @@ module Fastlane
 
       def self.authors
         ["Ram Awadhesh Sharan"]
+      end
+
+      def self.output
+        [
+          ['DEPLOYED_APP_UUID', 'The unique identifier of the deployed application in uuid format']
+        ]
       end
 
       def self.return_value
