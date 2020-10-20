@@ -128,4 +128,18 @@ platform :ios do
       debug: true
     )
   end
+
+  desc "This lane finds latest version of the app on the WS1 console"
+  lane :latest_version_number do
+    latest_version(app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+      debug: true
+    )
+
+    UI.message("Latest version number:")
+    UI.message(lane_context[SharedValues::LATEST_VERSION_NUMBER])
+    UI.message("Active version numbers:")
+    UI.message(lane_context[SharedValues::ACTIVE_VERSION_NUMBERS])
+    UI.message("Retired version numbers:")
+    UI.message(lane_context[SharedValues::RETIRED_VERSION_NUMEBRS])
+  end
 end

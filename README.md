@@ -7,7 +7,7 @@
 This project is a [_fastlane_](https://github.com/fastlane/fastlane) plugin. To get started with `fastlane-plugin-airwatch_workspaceone`, add it to your project by running:
 
 ```bash
-fastlane add_plugin airwatch_workspaceone
+bundle exec fastlane add_plugin airwatch_workspaceone
 ```
 
 ## About airwatch_workspaceone
@@ -23,34 +23,38 @@ This plugin features following actions :-
 6. add_or_update_assignments - The main purpose of this action is to add a new smart group assignment to an application or to update an existing smart group assignment of an application with a given dictionary of deployment/assignment parameters. If a smart group name is provided which does not exist yet on Console, assignment for that smart group is ignored.
 7. unretire_all_versions - The main purpose of this action is to unretire all retired versions of an application.
 8. unretire_specific_version - The main purpose of this action is to unretire a specific version of an application. This action takes a string parameter where you can specify the version number to unretire.
+9. latest_version - The main purpose of this action is to find the version number of the latest version of the app on the console and output the same. It also finds and outputs arrays of active app version numbers and retired app version numbers of the app.
 
 ## Available options
 
 To check for available options, run
 
 ```bash
-fastlane action deploy_build
+bundle exec fastlane action deploy_build
 ```
 ```bash
-fastlane action retire_previous_versions
+bundle exec fastlane action retire_previous_versions
 ```
 ```bash
-fastlane action delete_previous_versions
+bundle exec fastlane action delete_previous_versions
 ```
 ```bash
-fastlane action retire_specific_version
+bundle exec fastlane action retire_specific_version
 ```
 ```bash
-fastlane action delete_specific_version
+bundle exec fastlane action delete_specific_version
 ```
 ```bash
-fastlane action add_or_update_assignments
+bundle exec fastlane action add_or_update_assignments
 ```
 ```bash
-fastlane action unretire_all_versions
+bundle exec fastlane action unretire_all_versions
 ```
 ```bash
-fastlane action unretire_specific_version
+bundle exec fastlane action unretire_specific_version
+```
+```bash
+bundle exec fastlane action latest_version
 ```
 Please do not append /API/ at the end of host_url option in any of the actions; you should pass something like - https://asxxx.awmdm.com. Thanks to [Willie Stewart](https://github.com/wstewartii) for facing an [issue](https://github.com/letsbondiway/fastlane-plugin-airwatch_workspaceone/issues/2) because of this due to which this gets documented.
 ## Example
