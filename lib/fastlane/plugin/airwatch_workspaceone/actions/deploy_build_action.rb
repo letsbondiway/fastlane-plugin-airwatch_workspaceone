@@ -31,6 +31,7 @@ module Fastlane
           UI.message(" aw_tenant_code: #{params[:aw_tenant_code]}")
           UI.message(" b64_encoded_auth: #{params[:b64_encoded_auth]}")
           UI.message(" organization_group_id: #{params[:org_group_id]}")
+          UI.message(" carry_over_assignments: #{params[:carry_over_assignments]}")
           UI.message(" app_name: #{params[:app_name]}")
           UI.message(" app_version: #{params[:app_version]}")
           UI.message(" file_name: #{params[:file_name]}")
@@ -38,15 +39,16 @@ module Fastlane
           UI.message(" push_mode: #{params[:push_mode]}")
         end
 
-        $host_url         = params[:host_url]
-        $aw_tenant_code   = params[:aw_tenant_code]
-        $b64_encoded_auth = params[:b64_encoded_auth]
-        $org_group_id     = params[:org_group_id]
-        app_name          = params[:app_name]
-        app_version       = params[:app_version]
-        file_name         = params[:file_name]
-        path_to_file      = params[:path_to_file]
-        push_mode         = params[:push_mode]
+        $host_url               = params[:host_url]
+        $aw_tenant_code         = params[:aw_tenant_code]
+        $b64_encoded_auth       = params[:b64_encoded_auth]
+        $org_group_id           = params[:org_group_id]
+        $carry_over_assignments = params[:carry_over_assignments]
+        app_name                = params[:app_name]
+        app_version             = params[:app_version]
+        file_name               = params[:file_name]
+        path_to_file            = params[:path_to_file]
+        push_mode               = params[:push_mode]
 
         # step 1: determining device type
         UI.message("----------------------")
@@ -171,13 +173,14 @@ module Fastlane
         require 'json'
 
         body = {
-          "BlobId"          => blobID.to_s,
-          "DeviceType"      => $device_type, 
-          "ApplicationName" => app_name,
-          "AppVersion"      => app_version,
-          "SupportedModels" => $supported_device_models,
-          "PushMode"        => push_mode,
-          "LocationGroupId" => $org_group_id
+          "BlobId"               => blobID.to_s,
+          "DeviceType"           => $device_type, 
+          "ApplicationName"      => app_name,
+          "AppVersion"           => app_version,
+          "SupportedModels"      => $supported_device_models,
+          "PushMode"             => push_mode,
+          "LocationGroupId"      => $org_group_id,
+          "CarryOverAssignments" => $carry_over_assignments
         }
 
         if debug
@@ -294,6 +297,13 @@ module Fastlane
                               verify_block: proc do |value|
                                               UI.user_error!("No Organization Group ID integer given, pass using `org_group_id: 'yourorggrpintid'`") unless value and !value.empty?
                                             end),
+
+          FastlaneCore::ConfigItem.new(key: :carry_over_assignments,
+                                  env_name: "CARRY_OVER_ASSIGNMENTS",
+                               description: "Carry over assignments flag, set to false to prevent assignments from carrying over between application deployments. default: true",
+                                  optional: true,
+                                 is_string: false,
+                             default_value: false),
 
           FastlaneCore::ConfigItem.new(key: :app_name,
                                   env_name: "AIRWATCH_APPLICATION_NAME",
