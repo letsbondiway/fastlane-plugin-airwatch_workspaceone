@@ -303,7 +303,7 @@ module Fastlane
                                description: "Carry over assignments flag, set to false to prevent assignments from carrying over between application deployments. default: true",
                                   optional: true,
                                  is_string: false,
-                             default_value: false),
+                             default_value: true),
 
           FastlaneCore::ConfigItem.new(key: :app_name,
                                   env_name: "AIRWATCH_APPLICATION_NAME",
