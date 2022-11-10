@@ -7,11 +7,11 @@ require 'fastlane/plugin/airwatch_workspaceone/version'
 Gem::Specification.new do |spec|
   spec.name          = 'fastlane-plugin-airwatch_workspaceone'
   spec.version       = Fastlane::AirwatchWorkspaceone::VERSION
-  spec.author        = 'Stus k'
-  spec.email         = 'stuskoski@yahoo.com'
+  spec.author        = 'Ram Awadhesh Sharan'
+  spec.email         = 'ram.awadhesh1.618@gmail.com'
 
   spec.summary       = 'The main purpose of this plugin is to upload an IPA or an APK file to an AirWatch or Workspace ONE enterprise instance/console.'
-  spec.homepage      = "https://github.com/Stuskoski/fastlane-plugin-airwatch_workspaceone"
+  spec.homepage      = "https://github.com/letsbondiway/fastlane-plugin-airwatch_workspaceone"
   spec.license       = "MIT"
 
   spec.files         = Dir["lib/**/*"] + %w(README.md LICENSE)
